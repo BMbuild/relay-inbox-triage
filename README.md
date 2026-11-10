@@ -82,7 +82,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 ## Business Case
 
-**Who is who:** Relay AI's customers are small businesses; their support agents use this app to triage messages sent by *their* customers. "Customer messages" below means those incoming messages.
+**Who is who:** Relay AI's customers are small businesses; their support agents use this app to triage messages sent by *their* customers. "Customer messages" below means those incoming messages. Urgency is judged from the business's point of view: which incoming message needs a human reply first.
 
 **1. Problem.** Relay AI promises AI triage of customer messages. In this app the AI never ran: the configured model had been retired by Groq, every call failed, and the app silently fell back to keyword guesses. Urgency was inverted (a short outage was Low, a thank-you note full of "!" was High), and feature requests were routed to billing. A support team could not trust the triage, so they had to reread every message by hand.
 
