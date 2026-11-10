@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Customer Inbox Triage app is a lightweight AI-powered tool that helps classify customer support messages and recommend actions. It uses Groq AI to categorize messages, applies rule-based urgency scoring, and suggests next steps based on predefined templates.
+The Customer Inbox Triage app is a lightweight AI-powered tool that helps classify customer support messages and recommend actions. It uses Groq AI to choose a category and urgency, applies deterministic safety rules so critical messages are never scored below High, and suggests next steps and escalation from the category and urgency. When the AI is unavailable, it says so and falls back to the rules.
 
 ## Problem Statement
 
@@ -48,8 +48,6 @@ Support teams waste time manually reading and triaging customer messages. This t
    ```
    
    Get your FREE API key from: https://console.groq.com/keys
-   
-   **Why Groq?** Groq offers a generous free tier with fast inference and no credit card required!
 
 4. **Run the application**
    ```bash
@@ -67,7 +65,7 @@ Support teams waste time manually reading and triaging customer messages. This t
    - **Safety rules** (deterministic): detect outages, security incidents, incorrect charges and blocking problems under time pressure. A critical message is never scored below High, even if the AI says otherwise.
    - **Recommendation and escalation**: next step based on category *and* urgency; High urgency and security issues are flagged for escalation.
 4. **Display Results**: Shows the source (AI or rule-based fallback, the latter labelled "Low confidence · needs human review"), category, urgency, escalation, recommended action and reasoning
-5. **Fallback**: With no API key, or if the AI call fails, the rules triage the message and a visible notice asks for manual review
+5. **Fallback**: With no API key, or if the AI call fails (model error, rate limit, invalid answer), the rules triage the message and a visible notice gives the reason and asks for manual review
 6. **History**: All analyses are saved to localStorage and viewable in the History tab
 
 Categories: Billing Issue, Technical Problem, Account & Security, Feature Request, General Inquiry, Feedback.
@@ -163,8 +161,7 @@ The one category miss is "40 new hires... every invite link says it has expired"
 
 **What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. In fallback mode the result is labelled "Low confidence · needs human review" and the notice asks for manual review; improving the rules is the next step, measured on a fresh holdout set rather than this one.
 
-**Next steps**: handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
-
+**Technical next steps** (product next steps are in the Business Case): handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the 3 React lint errors that were already in the pages.
 
 ## Example Test Messages
 
@@ -206,11 +203,10 @@ The dashboard won't load when I try to access it. I've tried refreshing but it k
 
 ## Why Groq?
 
-- ✅ **Completely Free** - No credit card required
-- ✅ **Fast Inference** - Groq's LPU technology is incredibly fast
-- ✅ **Generous Limits** - ~14,400 requests/day on free tier
-- ✅ **High Quality** - Llama 3.3 70B performs excellently
-- ✅ **Easy Signup** - Get started in minutes at https://console.groq.com
+- **Free tier**, no credit card required; sign up at https://console.groq.com
+- **Fast inference**, which keeps triage near-instant for an agent
+- **Limits to plan for:** the free tier caps requests per minute; bursts beyond the SDK's two retries fall back to the rules (see the evaluation above)
+- **Models change:** `llama-3.3-70b-versatile`, the original model, was retired, which caused bug 1. The model is now configurable with `VITE_GROQ_MODEL`
 
 ## License
 
