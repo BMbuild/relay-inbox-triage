@@ -84,35 +84,35 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 **Who is who:** Relay AI's customers are small businesses; their support agents use this app to triage messages sent by *their* customers. "Customer messages" below means those incoming messages. Urgency is judged from the business's point of view: which incoming message needs a human reply first.
 
-**1. Problem.** Relay AI promises AI triage of customer messages. In this app the AI never ran: the configured model had been retired by Groq, every call failed, and the app silently fell back to keyword guesses. Urgency was inverted (a short outage was Low, a thank-you note full of "!" was High), and feature requests were routed to billing. A support team could not trust the triage, so they had to reread every message by hand.
+**1. Problem.** Relay AI promises AI triage of customer messages. In this app the AI never ran: the configured model had been retired by Groq, every call failed, and the app silently fell back to keyword guesses. Urgency was inverted (a short outage was Low, a thank-you note full of "!" was High), and feature requests were routed to billing. A support team could not trust the triage, so they would have had to reread every message by hand.
 
 **2. Solution.**
 
-- **Make the AI run reliably:** fixed categories, a validated JSON answer, and the same result for the same message.
+- **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (24 of 26 labelled messages got the same result on a second run).
 - **Make the fallback visible:** when the AI is unavailable (no key, model not found, rate limit), the result says "Rule-based fallback · Low confidence · needs human review" and why.
 - **Fix urgency and routing:** deterministic rules ensure an outage, a security incident or a wrong charge is never below High; the recommended action depends on category and urgency.
 
 **3. Evidence.**
 
 - 14 automated tests pass; putting the silent fallback back makes 3 of them fail.
-- On 12 new held-out messages: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details below).
+- On 12 new held-out messages: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details in the Week 8 Assessment section below). The sample is small and the messages were not written fully blind, so these results are encouraging, not conclusive.
 
-**4. Value for Relay AI.** Triage people can trust lets a small business handle more messages without hiring more support staff, which is the core of Relay AI's SaaS promise. Urgent issues no longer get lost in the queue, and when the AI is down the agent sees it instead of getting a wrong answer.
+**4. Value for Relay AI.** More reliable triage should let a small business handle more messages without hiring more support staff, which is the core of Relay AI's SaaS promise. Urgent issues are more likely to reach the top of the queue, and when the AI is down the agent sees it instead of getting a silent guess. These are expected effects, to be confirmed with the metrics below.
 
 **5. How we would measure success.** Time saved and trust are hypotheses until measured in production:
 
 | Metric | How to measure it | Why it matters |
 | --- | --- | --- |
-| Fallback rate | Share of results with `source: 'rules'`, by cause (no key, model error, rate limit, invalid answer) | Every fallback is a low-confidence result an agent must check |
-| AI–human agreement on urgency | Share of results whose urgency the agent keeps, on a weekly sample | Shows whether agents can trust the priority without rereading |
+| Fallback rate | Share of results with `source: 'rules'`; the cause (no key, model error, rate limit, invalid answer) is in the notice text today, a dedicated field would make it countable | Every fallback is a low-confidence result an agent must check |
+| AI–human agreement on urgency | Offline: share of messages where the AI's urgency matches a label set by a support lead, on a labelled sample (like the evaluation set) | Measures accuracy before release |
 | Time to first response on High messages | From message arrival to the agent's first reply | The business outcome: urgent issues handled faster |
-| Manual correction rate | Share of results whose category or urgency is changed by hand | Measures leftover manual work |
+| Manual correction rate | In production: share of results whose category or urgency an agent changes by hand | Measures leftover manual work in real use |
 
 **6. Risks and trade-offs.**
 
 - **Alert fatigue:** if too many messages are High, agents stop trusting the label. The safety rules only raise urgency, so watch the share of High results.
 - **False escalations:** the rules can raise a calm message to High (for example one that mentions "down" in passing). This is deliberate (missing an outage costs more), but it has a cost.
-- **API cost and limits:** each retry and each analysis is an API call; at volume, rate limits push more messages to the weaker fallback.
+- **API cost and limits:** each analysis is an API call, and the Groq SDK's automatic retries on rate-limit errors add more; at volume, rate limits push more messages to the weaker fallback.
 - **Security:** the Groq key is in the browser (local development only); production needs a server-side call.
 
 **7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a per-message processing state (pending, analyzing, done, failed), a "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
