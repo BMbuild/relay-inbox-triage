@@ -82,6 +82,25 @@ npm run eval        # live check against Groq: development set (14) and evaluati
 npm run eval:rules  # the rule-based fallback alone, on both sets (no API key needed)
 ```
 
+## Business Case
+
+**1. Problem.** Relay AI promises AI triage of customer messages. In this app the AI never ran: the configured model had been retired by Groq, every call failed, and the app silently fell back to keyword guesses. Urgency was inverted (a short outage was Low, a thank-you note full of "!" was High), and feature requests were routed to billing. A support team could not trust the triage, so they had to reread every message by hand.
+
+**2. Solution.**
+
+- **Make the AI run reliably:** fixed categories, a validated JSON answer, and the same result for the same message.
+- **Make the fallback visible:** when the AI is unavailable (no key, model not found, rate limit), the result says "Rule-based fallback · Low confidence · needs human review" and why.
+- **Fix urgency and routing:** deterministic rules ensure an outage, a security incident or a wrong charge is never below High; the recommended action depends on category and urgency.
+
+**3. Evidence.**
+
+- 14 automated tests pass; putting the silent fallback back makes 3 of them fail.
+- On 12 new held-out messages: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details below).
+
+**4. Value for Relay AI.** Triage people can trust lets a small business handle more messages without hiring more support staff, which is the core of Relay AI's SaaS promise. Urgent issues no longer get lost in the queue, and when the AI is down the agent sees it instead of getting a wrong answer.
+
+**5. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Time saved and customer trust are hypotheses, to be measured with product metrics: the fallback rate, time to first response on High-urgency messages, and the share of results corrected by hand.
+
 ## Improvements made (assessment)
 
 **Top 3 problems found**
