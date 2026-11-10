@@ -3,9 +3,9 @@
  * Usage: npm run eval:rules  (no API key needed)
  */
 import { classifyByRules, scoreUrgency } from '../src/utils/triageRules.js'
-import { HOLDOUT, TUNING } from './eval-sets.mjs'
+import { EVALUATION, DEVELOPMENT } from './eval-sets.mjs'
 
-for (const [title, examples] of [['Tuning set', TUNING], ['Holdout set', HOLDOUT]]) {
+for (const [title, examples] of [['Development set', DEVELOPMENT], ['Evaluation set', EVALUATION]]) {
   let categoryHits = 0, urgencyHits = 0
   console.log(`\n${title}`)
   for (const [message, expectedCategory, expectedUrgency] of examples) {

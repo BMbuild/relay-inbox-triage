@@ -2,14 +2,14 @@
  * Live evaluation against Groq: runs labelled examples twice and reports accuracy and consistency.
  * Usage: npm run eval  (reads VITE_GROQ_API_KEY and optional VITE_GROQ_MODEL from .env.local)
  *
- * Scores the tuning and holdout sets separately (see eval-sets.mjs). Pauses EVAL_DELAY_MS
+ * Scores the development and evaluation sets separately (see eval-sets.mjs). Pauses EVAL_DELAY_MS
  * (default 3000) before each call to stay under the free tier's per-minute limit.
  */
 import Groq from 'groq-sdk'
 import { DEFAULT_MODEL, triageWithAI } from '../src/utils/triageAI.js'
 import { combineUrgency, scoreUrgency } from '../src/utils/triageRules.js'
 import { getRecommendedAction, shouldEscalate } from '../src/utils/templates.js'
-import { HOLDOUT, TUNING } from './eval-sets.mjs'
+import { EVALUATION, DEVELOPMENT } from './eval-sets.mjs'
 
 const apiKey = process.env.VITE_GROQ_API_KEY
 if (!apiKey || apiKey === 'your_groq_api_key_here') {
@@ -24,8 +24,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 console.log(`Model: ${model}`)
 const results = [
-  await runSet('Tuning set (used to find and fix the bugs)', TUNING),
-  await runSet('Holdout set (new messages, never used for tuning)', HOLDOUT),
+  await runSet('Development set (used to find and fix the bugs)', DEVELOPMENT),
+  await runSet('Evaluation set (new messages, held out)', EVALUATION),
 ]
 console.log('')
 for (const r of results) console.log(r)

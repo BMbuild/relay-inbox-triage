@@ -1,14 +1,14 @@
 /**
  * Labelled messages for the evaluations (npm run eval, npm run eval:rules).
  *
- * - TUNING: the 14 messages used to find the bugs and adjust the rules. Its score is optimistic.
- * - HOLDOUT: 12 new messages added after the fixes, never used to change prompts or rules.
- *   Keep it that way: if a holdout message leads to a fix, move it to TUNING and write a new one.
+ * - DEVELOPMENT: the 14 messages used to find the bugs and adjust the rules. Its score is optimistic.
+ * - EVALUATION (held out): 12 new messages added after the fixes, never used to change prompts or rules.
+ *   Keep it that way: if an evaluation message leads to a fix, move it to DEVELOPMENT and write a new one.
  *
  * Each entry: [message, expected category, expected urgency].
  */
 
-export const TUNING = [
+export const DEVELOPMENT = [
   ['Database connection lost', 'Technical Problem', 'High'],
   ['Server down now', 'Technical Problem', 'High'],
   ['Thank you so much! Your team has been incredibly helpful and I really appreciate the fast response to my question earlier today!', 'Feedback', 'Low'],
@@ -26,7 +26,7 @@ export const TUNING = [
 ]
 
 // Labels follow the urgency definitions in the system prompt (src/utils/triageAI.js).
-export const HOLDOUT = [
+export const EVALUATION = [
   ['Our webhook deliveries stopped around 3am and none of our orders are syncing to the warehouse.', 'Technical Problem', 'High'],
   ['Your API returns a 500 error on every request to /orders since the last release.', 'Technical Problem', 'High'],
   ['The mobile app closes itself whenever I open the invoices tab on my Android phone. The website works fine.', 'Technical Problem', 'Medium'],
