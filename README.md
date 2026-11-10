@@ -89,7 +89,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 **2. Solution.**
 
 - **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run; this is an observation, not a guarantee).
-- **Make the fallback visible:** when the AI is unavailable (no key, model not found, rate limit), the result says "Rule-based fallback · Low confidence · needs human review" and why.
+- **Make the fallback visible:** when the AI is unavailable or unusable (no key, model not found, rate limit, invalid answer), the result says "Rule-based fallback · Low confidence · needs human review" and why.
 - **Fix urgency and routing:** deterministic rules ensure a message is never below High when it reports a possible account compromise, an incorrect charge, a service outage, or a problem with wide business impact or under time pressure; the recommended action depends on category and urgency.
 
 **3. Evidence.**
