@@ -66,7 +66,7 @@ Support teams waste time manually reading and triaging customer messages. This t
    - **AI triage** (Groq, default model `openai/gpt-oss-120b`): returns a category and urgency as validated JSON, with temperature 0 so the same message gets the same answer. The customer message is sent as delimited, untrusted data.
    - **Safety rules** (deterministic): detect outages, security incidents, incorrect charges and blocking problems under time pressure. A critical message is never scored below High, even if the AI says otherwise.
    - **Recommendation and escalation**: next step based on category *and* urgency; High urgency and security issues are flagged for escalation.
-4. **Display Results**: Shows the source (AI or rule-based fallback), category, urgency, escalation, recommended action and reasoning
+4. **Display Results**: Shows the source (AI or rule-based fallback, the latter labelled "Low confidence · needs human review"), category, urgency, escalation, recommended action and reasoning
 5. **Fallback**: With no API key, or if the AI call fails, the rules triage the message and a visible notice asks for manual review
 6. **History**: All analyses are saved to localStorage and viewable in the History tab
 
@@ -124,7 +124,7 @@ The one category miss is "40 new hires... every invite link says it has expired"
 
 **Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. The Groq SDK already retries a 429 twice and honors `retry-after`; bursts beyond that still fall back. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
 
-**What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. The notice already asks for manual review in fallback mode; improving the rules is the next step, measured on a fresh holdout set rather than this one.
+**What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. In fallback mode the result is labelled "Low confidence · needs human review" and the notice asks for manual review; improving the rules is the next step, measured on a fresh holdout set rather than this one.
 
 **Next steps**: handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
 

@@ -48,6 +48,7 @@ function AnalyzePage() {
         escalate: shouldEscalate(triage.category, triage.urgency),
         reasoning: triage.reasoning,
         source: triage.source,
+        confidence: triage.confidence,
         model: triage.model,
         notice: triage.notice,
         urgencyReasons: triage.urgencyReasons,
@@ -149,6 +150,11 @@ function AnalyzePage() {
               <span className={`font-semibold ${results.source === 'ai' ? 'text-blue-700' : 'text-orange-700'}`}>
                 {results.source === 'ai' ? `AI (${results.model})` : 'Rule-based fallback'}
               </span>
+              {results.confidence === 'low' && (
+                <span className="block w-fit mt-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide bg-orange-100 text-orange-800 border border-orange-300">
+                  Low confidence · needs human review
+                </span>
+              )}
             </p>
             {results.notice && (
               <div role="status" className="bg-orange-50 border border-orange-200 text-orange-900 rounded-lg p-3 mb-4 text-sm">
@@ -207,7 +213,7 @@ function AnalyzePage() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
-                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}${results.escalate ? ' (escalate)' : ''}\nRecommendation: ${results.recommendedAction}\nSource: ${results.source === 'ai' ? `AI (${results.model})` : 'rule-based fallback'}\n\nReasoning: ${results.reasoning}`
+                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}${results.escalate ? ' (escalate)' : ''}\nRecommendation: ${results.recommendedAction}\nSource: ${results.source === 'ai' ? `AI (${results.model})` : 'rule-based fallback (low confidence, needs human review)'}\n\nReasoning: ${results.reasoning}`
                   navigator.clipboard.writeText(text)
                   alert('Results copied to clipboard!')
                 }}

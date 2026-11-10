@@ -115,6 +115,7 @@ test('a failing AI call falls back to the rules and says so', async () => {
   const errors = []
   const result = await triageMessage('Server down now', { client: modelNotFound, model: 'llama-3.3-70b-versatile', onError: e => errors.push(e) })
   assert.equal(result.source, 'rules')
+  assert.equal(result.confidence, 'low')
   assert.equal(result.model, null)
   assert.match(result.notice, /AI unavailable \(The model `llama-3.3-70b-versatile` does not exist/)
   assert.match(result.notice, /review manually/)
@@ -126,6 +127,7 @@ test('a missing API key falls back to the rules and says so', async () => {
   const result = await triageMessage('Could you add an export to CSV feature?', { client: null, model: 'any' })
   assert.equal(result.source, 'rules')
   assert.match(result.notice, /No Groq API key/)
+  assert.equal(result.confidence, 'low')
   assert.equal(result.category, 'Feature Request')
 })
 
@@ -133,10 +135,11 @@ test('a working AI call is labelled as AI, and an invalid answer is not passed o
   const ok = await triageMessage('What are your business hours?', {
     client: aiAnswer({ category: 'General Inquiry', urgency: 'Low', reasoning: 'Simple question.' }), model: 'm',
   })
-  assert.deepEqual([ok.source, ok.model, ok.category, ok.urgency, ok.notice], ['ai', 'm', 'General Inquiry', 'Low', null])
+  assert.deepEqual([ok.source, ok.confidence, ok.model, ok.category, ok.urgency, ok.notice], ['ai', 'normal', 'm', 'General Inquiry', 'Low', null])
 
   const garbage = await triageMessage('What are your business hours?', { client: aiAnswer({ category: 'Spam', urgency: 'Low' }), model: 'm' })
   assert.equal(garbage.source, 'rules')
+  assert.equal(garbage.confidence, 'low')
   assert.match(garbage.notice, /unknown category: Spam/)
 })
 

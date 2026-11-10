@@ -12,7 +12,7 @@ import { classifyByRules, combineUrgency, scoreUrgency } from './triageRules.js'
  * @param {string} message
  * @param {{client: object|null, model: string, onError?: (error: Error) => void}} options
  * @returns {Promise<{category: string, urgency: string, reasoning: string, source: 'ai'|'rules',
- *   model: string|null, notice: string|null, urgencyReasons: string[]}>}
+ *   confidence: 'normal'|'low', model: string|null, notice: string|null, urgencyReasons: string[]}>}
  */
 export async function triageMessage(message, { client, model, onError = () => {} }) {
   const rules = scoreUrgency(message)
@@ -29,6 +29,7 @@ export async function triageMessage(message, { client, model, onError = () => {}
       urgency,
       reasoning: ai.reasoning,
       source: 'ai',
+      confidence: 'normal',
       model,
       notice: urgency !== ai.urgency ? `Urgency raised from ${ai.urgency} by safety rules: ${rules.reasons.join(', ')}.` : null,
       urgencyReasons: rules.reasons,
@@ -51,6 +52,8 @@ function rulesResult(message, rules, notice) {
     urgency: rules.level,
     reasoning: `Rule-based triage: ${rules.reasons.join(', ')}.`,
     source: 'rules',
+    // The rules scored 3/12 on new messages (README): their answer always needs a human check.
+    confidence: 'low',
     model: null,
     notice,
     urgencyReasons: rules.reasons,
