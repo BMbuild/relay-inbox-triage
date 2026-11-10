@@ -1,12 +1,8 @@
-# Customer Inbox Triage App
+# Relay Inbox Triage
 
-## Overview
+Small businesses that use Relay AI get more customer messages than their support agents can read in order. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the app as we received it, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
 
-The Customer Inbox Triage app is a lightweight AI-powered tool that helps classify customer support messages and recommend actions. It uses Groq AI to choose a category and urgency, applies deterministic safety rules so critical messages are never scored below High, and suggests next steps and escalation from the category and urgency. When the AI is unavailable, it says so and falls back to the rules.
-
-## Problem Statement
-
-Support teams waste time manually reading and triaging customer messages. This tool provides an automated first pass at classification to help prioritize and route messages more efficiently.
+Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. A Groq model does the triage. Five deterministic safety rules keep outages, wrong charges, possible account compromise, wide business impact and time pressure at High. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
 
 ## Demo
 
@@ -37,8 +33,8 @@ A real triage, captured on November 10, 2026 with the default Groq model (`opena
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/BMbuild/l2assessment.git
-   cd l2assessment
+   git clone https://github.com/BMbuild/relay-inbox-triage.git
+   cd relay-inbox-triage
    ```
 
 2. **Install dependencies**
