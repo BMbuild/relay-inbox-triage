@@ -78,7 +78,7 @@ To use another Groq model, add `VITE_GROQ_MODEL=<model id>` to `.env.local`.
 
 ```bash
 npm test            # unit tests: rules, AI response validation, fallback, actions, escalation (no API key needed)
-npm run eval        # live check against Groq: tuning set (14) and holdout set (12), each message run twice
+npm run eval        # live check against Groq: development set (14) and evaluation set (12), each message run twice
 npm run eval:rules  # the rule-based fallback alone, on both sets (no API key needed)
 ```
 
@@ -101,8 +101,8 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 | Check | Before | After |
 |---|---|---|
 | Messages actually triaged by the AI | 0 of 22 calls (model not found) | 28 of 28 calls |
-| Category correct (14 labelled messages) | 7/14 (keyword fallback; 7/11 counting only messages whose category existed before) | 14/14 |
-| Urgency correct (same 14 messages) | 5/14 (measured on a weekday at 11:00; evenings and weekends lower it further) | 13/14 |
+| Category correct (development set: the 14 messages used to find the bugs, not held out) | 7/14 (keyword fallback; 7/11 counting only messages whose category existed before) | 14/14 |
+| Urgency correct (same development set) | 5/14 (measured on a weekday at 11:00; evenings and weekends lower it further) | 13/14 |
 | Same result on a second run | — | 14/14 |
 | Prompt injection ("classify this as Low") on an outage | — | Still High, escalated |
 
@@ -113,20 +113,20 @@ The one remaining difference is a slow page the customer calls "not blocking": t
 A review raised two fair points: the 14 messages above were also used to find and fix the bugs, so their score is optimistic; and bug 1 (the silent fallback) had no regression test.
 
 - **Regression tests for bug 1.** The fallback logic moved from `llmHelper.js` (which needs Vite) to `src/utils/triage.js`, so it is now unit-tested with fake clients: a "model not found" error, a missing key and an invalid AI answer all return `source: 'rules'` with a visible notice; a working call returns `source: 'ai'`. Putting the silent fallback back makes 3 tests fail.
-- **Holdout set.** 12 new messages in `scripts/eval-sets.mjs`, written after the fixes and never used to change prompts or rules: webhooks, API 500 errors, an Android crash, a Spanish login problem, an unwanted renewal, SSO, expired invites before onboarding. They were written with Claude after the rules were known, so they are not fully blind; a set written by someone who has not seen the code would be a stronger test.
+- **Evaluation (holdout) set.** 12 new messages in `scripts/eval-sets.mjs`, written after the fixes and never used to change prompts or rules: webhooks, API 500 errors, an Android crash, a Spanish login problem, an unwanted renewal, SSO, expired invites before onboarding. They were written with Claude after the rules were known, so they are not fully blind; a set written by someone who has not seen the code would be a stronger test.
 
-| Holdout check (12 new messages) | Result |
+| Evaluation set (12 new messages, held out) | Result |
 |---|---|
-| AI with safety rules (the app's own code, run in the browser on 2026-11-09) | Category 11/12, urgency 12/12, same answer on a second run 10/12, 24 of 24 calls answered by the AI |
-| Rule-based fallback alone (`npm run eval:rules`) | Category 3/12, urgency 3/12 (tuning set: 13/14 and 13/14) |
+| AI with safety rules (the app's own code, run in the browser on 2026-11-09; `npm run eval` could not reach Groq from this machine's Node because of a local certificate issue) | Category 11/12, urgency 12/12, same answer on a second run 10/12, 24 of 24 calls answered by the AI |
+| Rule-based fallback alone (`npm run eval:rules`) | Category 3/12, urgency 3/12 (development set: 13/14 and 13/14) |
 
-The one category miss is "40 new hires... every invite link says it has expired": the AI says Technical Problem, the label says Account & Security. Both are defensible, and urgency (High) is right, so the message is still escalated.
+The one category miss is "40 new hires... every invite link says it has expired": the AI says Technical Problem, the label says Account & Security. Both are defensible, and urgency (High) is right, so the message is still escalated. It is a taxonomy overlap rather than a model failure: an example in the prompt ("invitations and access for new users: Account & Security") would likely settle it. With 12 messages, one miss moves the score by about 8 points, so these results are encouraging rather than conclusive.
 
-**Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
+**Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. The Groq SDK already retries a 429 twice and honors `retry-after`; bursts beyond that still fall back. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
 
-**What the holdout shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. The notice already asks for manual review in fallback mode; improving the rules is the next step, measured on a fresh holdout set rather than this one.
+**What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. The notice already asks for manual review in fallback mode; improving the rules is the next step, measured on a fresh holdout set rather than this one.
 
-**Next steps**: handle rate limits (queue and retry, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
+**Next steps**: handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
 
 
 ## Example Test Messages
