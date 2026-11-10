@@ -8,6 +8,17 @@ The Customer Inbox Triage app is a lightweight AI-powered tool that helps classi
 
 Support teams waste time manually reading and triaging customer messages. This tool provides an automated first pass at classification to help prioritize and route messages more efficiently.
 
+## Demo
+
+![Relay AI Analyze page: a customer reports a production outage; the app returns Technical Problem, High urgency with "Escalate to a lead", and the recommended action "Page the on-call engineer and open an incident; acknowledge the customer within 15 minutes."](docs/analyze-result.png)
+
+A real triage, captured on November 10, 2026 with the default Groq model (`openai/gpt-oss-120b`). A customer reports a production outage. The app shows:
+
+- **Category:** Technical Problem.
+- **Urgency:** High, with the **Escalate to a lead** badge and the signals that set it (service outage reported, wide business impact, problem under time pressure).
+- **Recommended action:** page the on-call engineer, open an incident, and acknowledge the customer within 15 minutes.
+- **Source:** AI. When the AI is unavailable, this line says "Rule-based fallback" and a **Low confidence · needs human review** badge appears.
+
 ## Tech Stack
 
 - **Frontend**: React + Vite + Tailwind CSS
