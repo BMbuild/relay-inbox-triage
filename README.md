@@ -90,12 +90,12 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 - **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run; this is an observation, not a guarantee).
 - **Make the fallback visible:** when the AI is unavailable or unusable (no key, model not found, rate limit, invalid answer), the result says "Rule-based fallback · Low confidence · needs human review" and why.
-- **Fix urgency and routing:** deterministic rules ensure a message is never below High when it reports a possible account compromise, an incorrect charge, a service outage, or a problem with wide business impact or under time pressure; the recommended action depends on category and urgency.
+- **Fix urgency and routing:** five deterministic rules keep a message at High or above: possible account compromise, customer charged incorrectly, service outage reported, wide business impact, and problem under time pressure (each has a test; the result shows which rule fired); the recommended action depends on category and urgency.
 
 **3. Evidence.**
 
 - 14 automated tests pass; putting the silent fallback back makes 3 of them fail.
-- On 12 new held-out messages: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details in the Week 8 Assessment section below). The sample is small and the messages were not written fully blind, so these results are encouraging, not conclusive.
+- On 12 new messages kept out of rule and prompt tuning: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details in the Week 8 Assessment section below). The sample is small and the messages were not written fully blind, so these results are encouraging, not conclusive.
 
 **4. Value for Relay AI.** More reliable triage should let a small business handle more messages without hiring more support staff, which is the core of Relay AI's SaaS promise. Urgent issues are more likely to reach the top of the queue, and when the AI is down the agent sees it instead of getting a silent guess. These are expected effects, to be confirmed with the metrics below.
 
@@ -112,7 +112,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 - **Alert fatigue:** if too many messages are High, agents stop trusting the label. The safety rules only raise urgency, so watch the share of High results.
 - **False escalations:** the rules can raise a calm message to High (for example one that mentions "down" in passing). This is deliberate (missing an outage costs more), but it has a cost.
-- **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls on rate-limit errors (this is not a user-facing button), which adds more; at volume, rate limits push more messages to the weaker fallback.
+- **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls, up to twice (rate limits, timeouts, connection and server errors; this is not a user-facing button), which adds more; at volume, rate limits push more messages to the weaker fallback.
 - **Security:** the Groq key is in the browser (local development only); production needs a server-side call.
 
 **7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a `fallbackCause` field on each result (no key, model error, rate limit, invalid answer) so the fallback rate can be broken down by cause, a per-message processing state (pending, analyzing, done, failed), a user-facing "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
@@ -152,12 +152,12 @@ A review raised two fair points: the 14 messages above were also used to find an
 
 | Evaluation set (12 new messages, held out) | Result |
 |---|---|
-| AI with safety rules (the app's own code, run in the browser on 2026-11-09; `npm run eval` could not reach Groq from this machine's Node because of a local certificate issue) | Category 11/12, urgency 12/12, same answer on a second run 10/12, 24 of 24 calls answered by the AI |
+| AI with safety rules (the app's own code, run in the browser on 2026-11-09; `npm run eval` could not reach Groq from this machine's Node because of a local certificate issue) | Category 11/12, urgency 12/12, same answer on a second run 10/12 (the two that changed: "I got an email saying my password was changed" and "40 new hires... invite link has expired"), 24 of 24 calls answered by the AI |
 | Rule-based fallback alone (`npm run eval:rules`) | Category 3/12, urgency 3/12 (development set: 13/14 and 13/14) |
 
 The one category miss is "40 new hires... every invite link says it has expired": the AI says Technical Problem, the label says Account & Security. Both are defensible, and urgency (High) is right, so the message is still escalated. It is a taxonomy overlap rather than a model failure: an example in the prompt ("invitations and access for new users: Account & Security") would likely settle it. With 12 messages, one miss moves the score by about 8 points, so these results are encouraging rather than conclusive.
 
-**Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. The Groq SDK already retries a 429 twice and honors `retry-after`; bursts beyond that still fall back. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
+**Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. The Groq SDK already retries failed calls twice (429 rate limits, timeouts, connection and 5xx errors) and honors `retry-after`; bursts beyond that still fall back. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
 
 **What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. In fallback mode the result is labelled "Low confidence · needs human review" and the notice asks for manual review; improving the rules is the next step, measured on a fresh evaluation set rather than this one.
 

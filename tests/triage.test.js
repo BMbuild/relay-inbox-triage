@@ -11,15 +11,18 @@ const samples = Object.fromEntries(
 )
 
 test('critical messages are High even when short, calm or in capitals', () => {
-  for (const message of [
-    samples[1], // "Database connection lost"
-    samples[6], // "Server down now"
-    'YOUR APP IS COMPLETELY BROKEN AND MY WHOLE TEAM CANNOT WORK',
-    'Someone logged into my account from Russia and changed my password. Please help ASAP.',
-    'I was charged twice for my March invoice, please refund the duplicate charge.',
-    "I can't log in, the password reset email never arrives and I have a client demo in 1 hour",
+  // One message per High rule, checked by the rule's own label (the five rules listed in the README).
+  for (const [message, rule] of [
+    [samples[1], 'service outage reported'], // "Database connection lost"
+    [samples[6], 'service outage reported'], // "Server down now"
+    ['YOUR APP IS COMPLETELY BROKEN AND MY WHOLE TEAM CANNOT WORK', 'wide business impact'],
+    ['Someone logged into my account from Russia and changed my password. Please help ASAP.', 'possible account compromise'],
+    ['I was charged twice for my March invoice, please refund the duplicate charge.', 'customer charged incorrectly'],
+    ["I can't log in, the password reset email never arrives and I have a client demo in 1 hour", 'problem under time pressure'],
   ]) {
-    assert.equal(scoreUrgency(message).level, 'High', message)
+    const result = scoreUrgency(message)
+    assert.equal(result.level, 'High', message)
+    assert.ok(result.reasons.includes(rule), `${message} -> expected rule "${rule}", got ${result.reasons}`)
   }
 })
 
