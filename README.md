@@ -11,7 +11,7 @@ Support teams waste time manually reading and triaging customer messages. This t
 ## Tech Stack
 
 - **Frontend**: React + Vite + Tailwind CSS
-- **AI**: Groq API (Llama 3.3 70B - Free tier)
+- **AI**: Groq API (default model `openai/gpt-oss-120b`, configurable with `VITE_GROQ_MODEL`; free tier)
 - **Runtime**: Browser-based (local development only)
 
 ## Setup Instructions
@@ -26,8 +26,8 @@ Support teams waste time manually reading and triaging customer messages. This t
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd "L2 assessment"
+   git clone https://github.com/BMbuild/l2assessment.git
+   cd l2assessment
    ```
 
 2. **Install dependencies**
@@ -68,6 +68,7 @@ Support teams waste time manually reading and triaging customer messages. This t
    - **Recommendation and escalation**: next step based on category *and* urgency; High urgency and security issues are flagged for escalation.
 4. **Display Results**: Shows the source (AI or rule-based fallback), category, urgency, escalation, recommended action and reasoning
 5. **Fallback**: With no API key, or if the AI call fails, the rules triage the message and a visible notice asks for manual review
+6. **History**: All analyses are saved to localStorage and viewable in the History tab
 
 Categories: Billing Issue, Technical Problem, Account & Security, Feature Request, General Inquiry, Feedback.
 
@@ -76,11 +77,12 @@ To use another Groq model, add `VITE_GROQ_MODEL=<model id>` to `.env.local`.
 ## Testing
 
 ```bash
-npm test       # unit tests for rules, AI response validation, actions and escalation (no API key needed)
-npm run eval   # live check against Groq: 14 labelled messages, run twice each
+npm test            # unit tests: rules, AI response validation, fallback, actions, escalation (no API key needed)
+npm run eval        # live check against Groq: tuning set (14) and holdout set (12), each message run twice
+npm run eval:rules  # the rule-based fallback alone, on both sets (no API key needed)
 ```
 
-## Improvements made (Week 2 assessment)
+## Improvements made (assessment)
 
 **Top 3 problems found**
 
@@ -106,8 +108,25 @@ npm run eval   # live check against Groq: 14 labelled messages, run twice each
 
 The one remaining difference is a slow page the customer calls "not blocking": the AI says Low where the label says Medium.
 
-**Next steps**: move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
-5. **History**: All analyses are saved to localStorage and viewable in the History tab
+### Follow-up: regression test for the silent fallback, and a holdout set
+
+A review raised two fair points: the 14 messages above were also used to find and fix the bugs, so their score is optimistic; and bug 1 (the silent fallback) had no regression test.
+
+- **Regression tests for bug 1.** The fallback logic moved from `llmHelper.js` (which needs Vite) to `src/utils/triage.js`, so it is now unit-tested with fake clients: a "model not found" error, a missing key and an invalid AI answer all return `source: 'rules'` with a visible notice; a working call returns `source: 'ai'`. Putting the silent fallback back makes 3 tests fail.
+- **Holdout set.** 12 new messages in `scripts/eval-sets.mjs`, written after the fixes and never used to change prompts or rules: webhooks, API 500 errors, an Android crash, a Spanish login problem, an unwanted renewal, SSO, expired invites before onboarding. They were written with Claude after the rules were known, so they are not fully blind; a set written by someone who has not seen the code would be a stronger test.
+
+| Holdout check (12 new messages) | Result |
+|---|---|
+| AI with safety rules (the app's own code, run in the browser on 2026-11-09) | Category 11/12, urgency 12/12, same answer on a second run 10/12, 24 of 24 calls answered by the AI |
+| Rule-based fallback alone (`npm run eval:rules`) | Category 3/12, urgency 3/12 (tuning set: 13/14 and 13/14) |
+
+The one category miss is "40 new hires... every invite link says it has expired": the AI says Technical Problem, the label says Account & Security. Both are defensible, and urgency (High) is right, so the message is still escalated.
+
+**Rate limits are a second reason the fallback matters.** Running 52 calls back to back hit Groq's requests-per-minute limit: those messages were triaged by the rules, with the notice shown, and accuracy dropped. At Relay AI's volume this would happen in production, not just in tests. `npm run eval` now pauses between calls (`EVAL_DELAY_MS`, default 3 s) and treats failed calls as failures instead of "consistent" results.
+
+**What the holdout shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. The notice already asks for manual review in fallback mode; improving the rules is the next step, measured on a fresh holdout set rather than this one.
+
+**Next steps**: handle rate limits (queue and retry, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh holdout set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the remaining React lint errors in the pages.
 
 
 ## Example Test Messages
