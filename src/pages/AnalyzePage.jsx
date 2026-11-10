@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { triageMessage } from '../utils/llmHelper'
 import { getRecommendedAction, shouldEscalate } from '../utils/templates'
+import { readHistory } from '../utils/history'
 
 const MIN_MESSAGE_LENGTH = 10
 const MAX_MESSAGE_LENGTH = 5000
@@ -58,7 +59,7 @@ function AnalyzePage() {
       setResults(analysisResult)
 
       // Save to history
-      const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
+      const history = readHistory()
       history.push(analysisResult)
       localStorage.setItem('triageHistory', JSON.stringify(history))
     } catch (error) {

@@ -1,26 +1,18 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { readHistory } from '../utils/history'
 
 function HomePage() {
-  const [stats, setStats] = useState({ total: 0, today: 0 })
-  const [recentActivity, setRecentActivity] = useState([])
+  // Read once when the page opens; stats are derived during render, not stored.
+  const [history] = useState(readHistory)
+  const today = new Date().toDateString()
+  const stats = {
+    total: history.length,
+    today: history.filter(item => new Date(item.timestamp).toDateString() === today).length
+  }
 
-  useEffect(() => {
-    // Load stats from localStorage
-    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
-    const today = new Date().toDateString()
-    const todayCount = history.filter(item => 
-      new Date(item.timestamp).toDateString() === today
-    ).length
-
-    setStats({
-      total: history.length,
-      today: todayCount
-    })
-
-    // Get recent 3 items
-    setRecentActivity(history.slice(-3).reverse())
-  }, [])
+  // Get recent 3 items
+  const recentActivity = history.slice(-3).reverse()
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

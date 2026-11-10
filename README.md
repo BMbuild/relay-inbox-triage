@@ -168,7 +168,7 @@ The one category miss is "40 new hires... every invite link says it has expired"
 
 **What the evaluation set shows about the rules:** the rules fit the messages they were tuned on, not new ones. They miss plurals ("invoices"), new wording ("stopped", "password was changed", "expired"), and other languages. This matters in two places: when the AI is down, the fallback is weak, and the High-urgency floor misses outages and security incidents phrased differently. In fallback mode the result is labelled "Low confidence · needs human review" and the notice asks for manual review; improving the rules is the next step, measured on a fresh evaluation set rather than this one.
 
-**Technical next steps** (product next steps are in the Business Case): handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh evaluation set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories), and fix the 3 React lint errors that were already in the pages.
+**Technical next steps** (product next steps are in the Business Case): handle rate limits (a request queue, more retries with backoff, or a paid tier) so bursts do not fall back to the rules, improve the fallback rules and measure them on a fresh evaluation set, move the Groq call to a server so the API key is not in the browser, upgrade `react-router-dom` (npm audit reports high-severity advisories).
 
 ## Example Test Messages
 
