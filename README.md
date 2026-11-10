@@ -88,9 +88,9 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 **2. Solution.**
 
-- **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (24 of 26 labelled messages got the same result on a second run).
+- **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run; this is an observation, not a guarantee).
 - **Make the fallback visible:** when the AI is unavailable (no key, model not found, rate limit), the result says "Rule-based fallback · Low confidence · needs human review" and why.
-- **Fix urgency and routing:** deterministic rules ensure an outage, a security incident or a wrong charge is never below High; the recommended action depends on category and urgency.
+- **Fix urgency and routing:** deterministic rules ensure a message is never below High when it reports a possible account compromise, an incorrect charge, a service outage, or a problem with wide business impact or under time pressure; the recommended action depends on category and urgency.
 
 **3. Evidence.**
 
@@ -103,7 +103,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 | Metric | How to measure it | Why it matters |
 | --- | --- | --- |
-| Fallback rate | Share of results with `source: 'rules'`; the cause (no key, model error, rate limit, invalid answer) is in the notice text today, a dedicated field would make it countable | Every fallback is a low-confidence result an agent must check |
+| Fallback rate | Share of results with `source: 'rules'`; today the cause (no key, model error, rate limit, invalid answer) appears only in the notice text; a `fallbackCause` field (see next steps) would make it countable | Every fallback is a low-confidence result an agent must check |
 | AI–human agreement on urgency | Offline: share of messages where the AI's urgency matches a label set by a support lead, on a labelled sample (like the evaluation set) | Measures accuracy before release |
 | Time to first response on High messages | From message arrival to the agent's first reply | The business outcome: urgent issues handled faster |
 | Manual correction rate | In production: share of results whose category or urgency an agent changes by hand | Measures leftover manual work in real use |
@@ -112,10 +112,10 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 - **Alert fatigue:** if too many messages are High, agents stop trusting the label. The safety rules only raise urgency, so watch the share of High results.
 - **False escalations:** the rules can raise a calm message to High (for example one that mentions "down" in passing). This is deliberate (missing an outage costs more), but it has a cost.
-- **API cost and limits:** each analysis is an API call, and the Groq SDK's automatic retries on rate-limit errors add more; at volume, rate limits push more messages to the weaker fallback.
+- **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls on rate-limit errors (this is not a user-facing button), which adds more; at volume, rate limits push more messages to the weaker fallback.
 - **Security:** the Groq key is in the browser (local development only); production needs a server-side call.
 
-**7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a per-message processing state (pending, analyzing, done, failed), a "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
+**7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a `fallbackCause` field on each result (no key, model error, rate limit, invalid answer) so the fallback rate can be broken down by cause, a per-message processing state (pending, analyzing, done, failed), a user-facing "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
 
 ## Improvements made (Week 8 Assessment)
 
