@@ -117,7 +117,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 **7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a per-message processing state (pending, analyzing, done, failed), a "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
 
-## Improvements made (assessment)
+## Improvements made (Week 8 Assessment)
 
 **Top 3 problems found**
 
