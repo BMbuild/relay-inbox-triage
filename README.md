@@ -1,10 +1,10 @@
 # Relay Inbox Triage
 
-*Context: Relay AI is the customer-operations company in the Pursuit Week 8 technical assessment. Its inbox triage app was handed to us with deliberate bugs; this repository is that app, fixed and tested.*
-
-Small businesses that use Relay AI get more customer messages than their support agents can read in order. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the starter app we were given, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
+Small businesses that use Relay AI receive more customer messages than their support agents can read right away. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the starter app we were given, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
 
 Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. An AI model hosted by Groq does the triage. Five fixed safety rules, written in code rather than left to the AI, keep outages, wrong charges, possible account compromise, wide business impact and time pressure at High. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
+
+*Context: Relay AI is the customer-operations company in the Pursuit Week 8 technical assessment. Its inbox triage app was handed to us with deliberate bugs; this repository is that app, fixed and tested.*
 
 ## Demo
 
