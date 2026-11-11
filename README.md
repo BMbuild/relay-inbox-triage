@@ -1,8 +1,10 @@
 # Relay Inbox Triage
 
-Small businesses that use Relay AI get more customer messages than their support agents can read in order. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the app as we received it, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
+*Context: Relay AI is the customer-operations company in the Pursuit Week 8 technical assessment. Its inbox triage app was handed to us with deliberate bugs; this repository is that app, fixed and tested.*
 
-Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. A Groq model does the triage. Five deterministic safety rules keep outages, wrong charges, possible account compromise, wide business impact and time pressure at High. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
+Small businesses that use Relay AI get more customer messages than their support agents can read in order. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the starter app we were given, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
+
+Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. An AI model hosted by Groq does the triage. Five fixed safety rules, written in code rather than left to the AI, keep outages, wrong charges, possible account compromise, wide business impact and time pressure at High. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
 
 ## Demo
 
@@ -68,12 +70,12 @@ A real triage, captured on November 10, 2026 with the default Groq model (`opena
 1. **Paste Message**: User pastes a customer support message (10–5,000 characters) into the text area
 2. **Analyze**: Click "Analyze Message" to process the input
 3. **Triage**:
-   - **AI triage** (Groq, default model `openai/gpt-oss-120b`): returns a category and urgency as validated JSON, with temperature 0 so the same message gets the same answer. The customer message is sent as delimited, untrusted data.
+   - **AI triage** (Groq, default model `openai/gpt-oss-120b`): returns a category and urgency as validated JSON, with temperature 0 so a message tends to get the same answer (24 of 26 test messages did on a second run). The customer message is sent as delimited, untrusted data.
    - **Safety rules** (deterministic): detect outages, security incidents, incorrect charges and blocking problems under time pressure. A critical message is never scored below High, even if the AI says otherwise.
    - **Recommendation and escalation**: next step based on category *and* urgency; High urgency and security issues are flagged for escalation.
 4. **Display Results**: Shows the source (AI or rule-based fallback, the latter labelled "Low confidence · needs human review"), category, urgency, escalation, recommended action and reasoning
 5. **Fallback**: With no API key, or if the AI call fails (model error, rate limit, invalid answer), the rules triage the message and a visible notice gives the reason and asks for manual review
-6. **History**: All analyses are saved to localStorage and viewable in the History tab
+6. **History and Dashboard**: All analyses are saved in the browser (localStorage); the History tab lists them and the Dashboard tab shows totals by category and urgency
 
 Categories: Billing Issue, Technical Problem, Account & Security, Feature Request, General Inquiry, Feedback.
 
@@ -86,6 +88,8 @@ npm test            # unit tests: rules, AI response validation, fallback, actio
 npm run eval        # live check against Groq: development set (14) and evaluation set (12), each message run twice
 npm run eval:rules  # the rule-based fallback alone, on both sets (no API key needed)
 ```
+
+The two sets of labelled messages, in `scripts/eval-sets.mjs`: the **development set** is 14 messages used to find and fix the bugs, so its scores are optimistic; the **evaluation set** is 12 new messages kept out of all tuning, so its scores are the fairer test.
 
 `npm run eval` needs a Groq key in `.env.local` and Node's access to `api.groq.com`. On the machine used for this project it fails with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` (a local certificate issue, not a bug in the app), so the AI scores below were measured in the browser instead. `npm test` and `npm run eval:rules` need neither a key nor the network.
 
@@ -121,7 +125,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 - **Alert fatigue:** if too many messages are High, agents stop trusting the label. The safety rules only raise urgency, so watch the share of High results.
 - **False escalations:** the rules can raise a calm message to High (for example one that mentions "down" in passing). This is deliberate (missing an outage costs more), but it has a cost.
-- **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls, up to twice (rate limits, timeouts, connection and server errors; this is not a user-facing button), which adds more; at volume, rate limits push more messages to the weaker fallback.
+- **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls, up to twice (rate limits, timeouts, connection and server errors; this is not a user-facing button), which adds more calls; at volume, rate limits push more messages to the weaker fallback.
 - **Security:** the Groq key is in the browser (local development only); production needs a server-side call.
 
 **7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The AI scores were measured once, in the browser, and not rerun: `npm run eval` fails on this machine because of a local certificate issue. The fallback rules are weak on new wording. Not built yet, and proposed next: a `fallbackCause` field on each result (no key, model error, rate limit, invalid answer) so the fallback rate can be broken down by cause, a per-message processing state (pending, analyzing, done, failed), a user-facing "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
@@ -144,7 +148,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 | Check | Before | After |
 |---|---|---|
-| Messages actually triaged by the AI | 0 of 22 calls (model not found) | 28 of 28 calls |
+| Messages actually triaged by the AI | None: every call failed (model not found) | 28 of 28 calls (the 14 development messages, each run twice) |
 | Category correct (development set: the 14 messages used to find the bugs, not held out) | 7/14 (keyword fallback; 7/11 counting only messages whose category existed before) | 14/14 |
 | Urgency correct (same development set) | 5/14 (measured on a weekday at 11:00; evenings and weekends lower it further) | 13/14 |
 | Same result on a second run | — | 14/14 |
@@ -174,34 +178,34 @@ The one category miss is "40 new hires... every invite link says it has expired"
 
 ## Example Test Messages
 
-Try analyzing these messages to see how the triage system works:
+Try analyzing these messages to see how the triage system works. The headings describe the message, not the expected category; a similar outage message gives the result shown in the [Demo](#demo).
 
-### Example 1: Production Issue
+### Example 1: An outage
 ```
 Our production server is down
 ```
 
-### Example 2: Customer Feedback
+### Example 2: A thank-you note
 ```
 Hi there! I just wanted to say thank you for your amazing customer service. I've been using your product for three years now and I'm really happy with it. Keep up the great work!
 ```
 
-### Example 3: Feature Request
+### Example 3: A feature idea
 ```
 I would love to see a dark mode option in the app. It would be much easier on my eyes during night time usage.
 ```
 
-### Example 4: Payment Issue
+### Example 4: A payment page that won't load
 ```
 I tried to update my payment method but the page keeps loading forever. Is this a known issue?
 ```
 
-### Example 5: Billing Question
+### Example 5: A plan upgrade question
 ```
 Can I upgrade my subscription to the pro plan?
 ```
 
-### Example 6: Technical Support
+### Example 6: A dashboard that times out
 ```
 The dashboard won't load when I try to access it. I've tried refreshing but it keeps timing out.
 ```
