@@ -87,6 +87,8 @@ npm run eval        # live check against Groq: development set (14) and evaluati
 npm run eval:rules  # the rule-based fallback alone, on both sets (no API key needed)
 ```
 
+`npm run eval` needs a Groq key in `.env.local` and Node's access to `api.groq.com`. On the machine used for this project it fails with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` (a local certificate issue, not a bug in the app), so the AI scores below were measured in the browser instead. `npm test` and `npm run eval:rules` need neither a key nor the network.
+
 ## Business Case
 
 **Who is who:** Relay AI's customers are small businesses; their support agents use this app to triage messages sent by *their* customers. "Customer messages" below means those incoming messages. Urgency is judged from the business's point of view: which incoming message needs a human reply first.
@@ -95,14 +97,14 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 
 **2. Solution.**
 
-- **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run; this is an observation, not a guarantee).
+- **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run, all 14 of the development set and 10 of the 12 evaluation messages; the two that changed are both in the evaluation set. This is an observation, not a guarantee).
 - **Make the fallback visible:** when the AI is unavailable or unusable (no key, model not found, rate limit, invalid answer), the result says "Rule-based fallback · Low confidence · needs human review" and why.
 - **Fix urgency and routing:** five deterministic rules keep a message at High or above: possible account compromise, customer charged incorrectly, service outage reported, wide business impact, and problem under time pressure (each has a test; the result shows which rule fired); the recommended action depends on category and urgency.
 
 **3. Evidence.**
 
 - 14 automated tests pass; putting the silent fallback back makes 3 of them fail.
-- On 12 new messages kept out of rule and prompt tuning: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details in the Week 8 Assessment section below). The sample is small and the messages were not written fully blind, so these results are encouraging, not conclusive.
+- On 12 new messages kept out of rule and prompt tuning: category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone (details in the Week 8 Assessment section below). The AI scores come from one run in the browser on 2026-11-09 and have not been rerun since: `npm run eval` cannot reach Groq from this machine's Node because of a local certificate issue. The rules-only scores were rerun on 2026-11-11 with the same result. The sample is small and the messages were not written fully blind, so these results are encouraging, not conclusive.
 
 **4. Value for Relay AI.** More reliable triage should let a small business handle more messages without hiring more support staff, which is the core of Relay AI's SaaS promise. Urgent issues are more likely to reach the top of the queue, and when the AI is down the agent sees it instead of getting a silent guess. These are expected effects, to be confirmed with the metrics below.
 
@@ -122,7 +124,7 @@ npm run eval:rules  # the rule-based fallback alone, on both sets (no API key ne
 - **API cost and limits:** each analysis is an API call, and the Groq client automatically retries failed calls, up to twice (rate limits, timeouts, connection and server errors; this is not a user-facing button), which adds more; at volume, rate limits push more messages to the weaker fallback.
 - **Security:** the Groq key is in the browser (local development only); production needs a server-side call.
 
-**7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The fallback rules are weak on new wording. Not built yet, and proposed next: a `fallbackCause` field on each result (no key, model error, rate limit, invalid answer) so the fallback rate can be broken down by cause, a per-message processing state (pending, analyzing, done, failed), a user-facing "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
+**7. Limits and next steps.** The sample is small, and the new messages were not written fully blind. The AI scores were measured once, in the browser, and not rerun: `npm run eval` fails on this machine because of a local certificate issue. The fallback rules are weak on new wording. Not built yet, and proposed next: a `fallbackCause` field on each result (no key, model error, rate limit, invalid answer) so the fallback rate can be broken down by cause, a per-message processing state (pending, analyzing, done, failed), a user-facing "Retry" button, and error types with a suggested action ("rate limit: retry in a minute", "no key: contact your admin").
 
 ## Improvements made (Week 8 Assessment)
 
