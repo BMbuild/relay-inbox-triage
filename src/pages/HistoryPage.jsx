@@ -14,8 +14,9 @@ function HistoryPage() {
     }
   }
 
-  const sortedHistory = [...history].sort((a, b) => 
-    a.message.localeCompare(b.message)
+  // Newest first, so the result an agent just saved is at the top.
+  const sortedHistory = [...history].sort((a, b) =>
+    (b.timestamp || '').localeCompare(a.timestamp || '')
   )
   
   const filteredHistory = filter === 'all' 
@@ -108,17 +109,37 @@ function HistoryPage() {
                     <div className="text-gray-800 font-medium mb-2">
                       "{item.message.substring(0, 100)}{item.message.length > 100 ? '...' : ''}"
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
                         {item.category}
                       </span>
-                      <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                      <span className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold ${
                         item.urgency === 'High' ? 'bg-red-200 text-red-900' :
                         item.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                         'bg-green-200 text-green-900'
                       }`}>
                         {item.urgency} Urgency
                       </span>
+                      {item.escalate && (
+                        <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold bg-red-600 text-white">
+                          Escalate
+                        </span>
+                      )}
+                      {item.source === 'ai' && (
+                        <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                          AI{item.model ? ` (${item.model})` : ''}
+                        </span>
+                      )}
+                      {item.source === 'rules' && (
+                        <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap font-semibold bg-orange-50 text-orange-800 border border-orange-200">
+                          Rule-based fallback
+                        </span>
+                      )}
+                      {item.confidence === 'low' && (
+                        <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap font-bold uppercase tracking-wide bg-orange-100 text-orange-800 border border-orange-300">
+                          Low confidence · needs human review
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="text-gray-400 ml-4">
@@ -130,6 +151,11 @@ function HistoryPage() {
               {expandedIndex === index && (
                 <div className="border-t border-gray-200 p-4 bg-gray-50">
                   <div className="space-y-3">
+                    {item.notice && (
+                      <div role="status" className="bg-orange-50 border border-orange-200 text-orange-900 rounded p-3 text-sm">
+                        {item.notice}
+                      </div>
+                    )}
                     <div>
                       <div className="text-xs font-semibold text-gray-600 mb-1">Full Message</div>
                       <div className="text-sm text-gray-800 bg-white p-3 rounded border border-gray-200">
@@ -143,7 +169,7 @@ function HistoryPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-gray-600 mb-1">AI Reasoning</div>
+                      <div className="text-xs font-semibold text-gray-600 mb-1">Reasoning</div>
                       <div className="bg-white p-3 rounded border border-gray-200">
                         <div className="prose prose-sm max-w-none text-gray-700">
                           <ReactMarkdown>

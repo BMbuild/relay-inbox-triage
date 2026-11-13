@@ -2,9 +2,15 @@
 
 Small businesses that use Relay AI receive more customer messages than their support agents can read right away. An outage report or a wrong charge can sit behind thank-you notes and feature requests, and while it waits, the business can lose customers and revenue. Relay AI promises AI triage to fix this, but in the starter app we were given, the AI never ran: every call failed silently, and agents got keyword guesses with urgency often inverted, so they could not trust the queue and had to reread every message.
 
-Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. An AI model hosted by Groq does the triage. Five fixed safety rules, written in code rather than left to the AI, keep outages, wrong charges, possible account compromise, wide business impact and time pressure at High. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
+Relay Inbox Triage gives each incoming message a category, an urgency level and a recommended next step, so agents answer the urgent ones first. An AI model hosted by Groq does the triage. Five fixed safety rules, written in code rather than left to the AI, raise the messages they detect (outages, wrong charges, possible account compromise, wide business impact, time pressure) to at least High; unfamiliar phrasing can still be missed. When the AI is unavailable, the result says so and is marked low confidence for human review, instead of guessing silently. See the [Business Case](#business-case) for evidence and how we would measure success.
 
 *Context: Relay AI is the customer-operations company in the Pursuit Week 8 technical assessment. Its inbox triage app was handed to us with deliberate bugs; this repository is that app, fixed and tested.*
+
+## Results at a glance
+
+- **The AI now runs:** 28 of 28 calls answered by the AI on the development set, versus none before (every call failed silently).
+- **On 12 new messages kept out of all tuning:** category 11/12 and urgency 12/12 with the AI, versus 3/12 and 3/12 with the rules alone. A small sample measured once in the browser; encouraging, not conclusive (details in the [Business Case](#business-case)).
+- **When the AI is unavailable, it shows:** the result says “Rule-based fallback · Low confidence · needs human review”, on the result page and in History. Putting the silent fallback back makes 3 of the 14 tests fail.
 
 ## Demo
 
@@ -71,11 +77,11 @@ A real triage, captured on November 10, 2026 with the default Groq model (`opena
 2. **Analyze**: Click "Analyze Message" to process the input
 3. **Triage**:
    - **AI triage** (Groq, default model `openai/gpt-oss-120b`): returns a category and urgency as validated JSON, with temperature 0 so a message tends to get the same answer (24 of 26 test messages did on a second run). The customer message is sent as delimited, untrusted data.
-   - **Safety rules** (deterministic): detect outages, security incidents, incorrect charges and blocking problems under time pressure. A critical message is never scored below High, even if the AI says otherwise.
+   - **Safety rules** (deterministic): detect outages, security incidents, incorrect charges and blocking problems under time pressure. Messages detected by the safety rules are raised to at least High, even if the AI says otherwise; unfamiliar phrasing can still be missed.
    - **Recommendation and escalation**: next step based on category *and* urgency; High urgency and security issues are flagged for escalation.
 4. **Display Results**: Shows the source (AI or rule-based fallback, the latter labelled "Low confidence · needs human review"), category, urgency, escalation, recommended action and reasoning
 5. **Fallback**: With no API key, or if the AI call fails (model error, rate limit, invalid answer), the rules triage the message and a visible notice gives the reason and asks for manual review
-6. **History and Dashboard**: All analyses are saved in the browser (localStorage); the History tab lists them and the Dashboard tab shows totals by category and urgency
+6. **History and Dashboard**: All analyses are saved in the browser (localStorage). The History tab lists them newest first and keeps each result's source (AI or rule-based fallback), its Low confidence badge, its escalation flag and its fallback notice, so a rule-based result is never mistaken for an AI one later. The Dashboard tab shows totals by category and urgency
 
 Categories: Billing Issue, Technical Problem, Account & Security, Feature Request, General Inquiry, Feedback.
 
@@ -97,13 +103,13 @@ The two sets of labelled messages, in `scripts/eval-sets.mjs`: the **development
 
 **Who is who:** Relay AI's customers are small businesses; their support agents use this app to triage messages sent by *their* customers. "Customer messages" below means those incoming messages. Urgency is judged from the business's point of view: which incoming message needs a human reply first.
 
-**1. Problem.** Relay AI promises AI triage of customer messages. In this app the AI never ran: the configured model had been retired by Groq, every call failed, and the app silently fell back to keyword guesses. Urgency was inverted (a short outage was Low, a thank-you note full of "!" was High), and feature requests were routed to billing. A support team could not trust the triage, so they would have had to reread every message by hand.
+**1. Problem.** In the starter app the AI never ran, urgency was inverted and routing was wrong (see [Top 3 problems found](#improvements-made-week-8-assessment)), so a support team could not trust the triage and would have had to reread every message by hand.
 
 **2. Solution.**
 
 - **Make the AI run reliably:** fixed categories, a validated JSON answer, and temperature 0 so a message tends to get the same answer (measured on our own 26 labelled messages: 24 got the same result on a second run, all 14 of the development set and 10 of the 12 evaluation messages; the two that changed are both in the evaluation set. This is an observation, not a guarantee).
 - **Make the fallback visible:** when the AI is unavailable or unusable (no key, model not found, rate limit, invalid answer), the result says "Rule-based fallback · Low confidence · needs human review" and why.
-- **Fix urgency and routing:** five deterministic rules keep a message at High or above: possible account compromise, customer charged incorrectly, service outage reported, wide business impact, and problem under time pressure (each has a test; the result shows which rule fired); the recommended action depends on category and urgency.
+- **Fix urgency and routing:** five deterministic rules raise a message they detect to High or above (unfamiliar phrasing can still be missed): possible account compromise, customer charged incorrectly, service outage reported, wide business impact, and problem under time pressure (each has a test; the result shows which rule fired); the recommended action depends on category and urgency.
 
 **3. Evidence.**
 
